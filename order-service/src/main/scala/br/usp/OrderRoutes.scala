@@ -28,9 +28,9 @@ class OrderRoutes(implicit val system: ActorSystem[_]) {
   private val sharding = ClusterSharding(system)
 
   // If ask takes more time than this to complete the request is failed
-  private implicit val timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
+  private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
 
-  def getOrders = {
+  def getOrders: Future[Seq[Order]] = {
     val readJournal =
       PersistenceQuery(system).readJournalFor[CurrentPersistenceIdsQuery](MongoReadJournal.Identifier)
     readJournal
@@ -41,7 +41,7 @@ class OrderRoutes(implicit val system: ActorSystem[_]) {
 
   def getOrder(orderId: String): Future[GetOrderResponse] = {
     val entityRef = sharding.entityRefFor(OrderPersistence.EntityKey, orderId)
-    entityRef.ask(GetOrder(_))
+    entityRef.ask(GetOrder)
   }
   def createOrder(order: Order): Future[String] = {
     val id = new ObjectId().toString
@@ -50,7 +50,7 @@ class OrderRoutes(implicit val system: ActorSystem[_]) {
   }
   def deleteOrder(orderId: String): Future[String] = {
     val entityRef = sharding.entityRefFor(OrderPersistence.EntityKey, orderId)
-    entityRef.ask(DeleteOrder(_))
+    entityRef.ask(DeleteOrder)
   }
 
   val orderRoutes: Route =
@@ -65,7 +65,7 @@ class OrderRoutes(implicit val system: ActorSystem[_]) {
             },
             post {
               entity(as[OrderRequest]) { o =>
-                val order = Order(OrderState.PENDING)
+                val order = Order(o.consumerId, OrderState.PENDING)
                 onSuccess(createOrder(order)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }

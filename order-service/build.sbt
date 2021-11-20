@@ -3,7 +3,7 @@ lazy val akkaVersion    = "2.6.17"
 lazy val leveldbVersion = "0.12"
 lazy val leveldbjniVersion = "1.8"
 val AkkaManagementVersion = "1.1.1"
-val JacksonVersion = "2.11.4"
+val JacksonVersion = "2.11.0"
 
 lazy val root = (project in file(".")).
   settings(

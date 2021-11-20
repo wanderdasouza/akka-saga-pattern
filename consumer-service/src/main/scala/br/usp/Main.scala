@@ -3,8 +3,15 @@ package br.usp
 import akka.actor.AddressFromURIString
 import com.typesafe.config.Config
 import akka.actor.typed.ActorSystem
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.kafka.scaladsl.Consumer
+import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.management.scaladsl.AkkaManagement
+import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
 import com.typesafe.config.ConfigFactory
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.collection.JavaConverters._
 
@@ -32,8 +39,10 @@ object Main {
         else 0 // let OS decide
 
       val config = configWithPort(port)
-      val system = ActorSystem[Nothing](Guardian(httpPort), "ConsumerApp", config)
-      AkkaManagement(system).start()
+      implicit val system = ActorSystem[Nothing](Guardian(httpPort), "ConsumerApp", config)
+      // AkkaManagement(system).start()
+      implicit val mat: Materializer = Materializer(system)
+      ConsumerConsumer.subscribe("order-created")
     }
   }
 

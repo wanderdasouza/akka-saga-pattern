@@ -23,34 +23,10 @@ class ConsumerRoutes(implicit val system: ActorSystem[_]) {
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import br.usp.serialization.JsonFormats._
   //#import-json-formats
-
-  private val sharding = ClusterSharding(system)
-
   // If ask takes more time than this to complete the request is failed
-  private implicit val timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
+  private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
 
-  def getConsumers = {
-    val readJournal =
-      PersistenceQuery(system).readJournalFor[CurrentPersistenceIdsQuery](MongoReadJournal.Identifier)
-    readJournal
-      .currentPersistenceIds()
-      .map(id => Await.result(getConsumer(id.split("\\|").last), 3.second).maybeConsumer.get)
-      .runFold(Seq.empty[Consumer])((set, consumer) => set.+:(consumer))
-  }
-
-  def getConsumer(consumerId: String): Future[GetConsumerResponse] = {
-    val entityRef = sharding.entityRefFor(ConsumerPersistence.EntityKey, consumerId)
-    entityRef.ask(GetConsumer(_))
-  }
-  def createConsumer(consumer: Consumer): Future[String] = {
-    val id = new ObjectId().toString
-    val entityRef = sharding.entityRefFor(ConsumerPersistence.EntityKey, id)
-    entityRef.ask(CreateConsumer(consumer, _))
-  }
-  def deleteConsumer(consumerId: String): Future[String] = {
-    val entityRef = sharding.entityRefFor(ConsumerPersistence.EntityKey, consumerId)
-    entityRef.ask(DeleteConsumer(_))
-  }
+  val repository: ConsumerRepository = new ConsumerRepository(system)
 
   val consumerRoutes: Route =
     pathPrefix("consumers") {
@@ -58,13 +34,13 @@ class ConsumerRoutes(implicit val system: ActorSystem[_]) {
         pathEnd {
           concat(
             get {
-              onSuccess(getConsumers) { consumers =>
+              onSuccess(repository.getConsumers) { consumers =>
                 complete(StatusCodes.OK, Consumers(consumers.toSeq))
               }
             },
             post {
               entity(as[Consumer]) { consumer =>
-                onSuccess(createConsumer(consumer)) { performed =>
+                onSuccess(repository.createConsumer(consumer)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }
               }
@@ -74,13 +50,13 @@ class ConsumerRoutes(implicit val system: ActorSystem[_]) {
           concat(
             get {
               rejectEmptyResponse {
-                onSuccess(getConsumer(id)) { response =>
+                onSuccess(repository.getConsumer(id)) { response =>
                   complete(response.maybeConsumer)
                 }
               }
             },
             delete {
-              onSuccess(deleteConsumer(id)) { performed =>
+              onSuccess(repository.deleteConsumer(id)) { performed =>
                 complete((StatusCodes.OK, performed))
               }
             }

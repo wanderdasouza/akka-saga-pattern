@@ -1,20 +1,23 @@
 package br.usp
 
 import akka.actor.AddressFromURIString
-import com.typesafe.config.Config
 import akka.actor.typed.ActorSystem
-import akka.kafka.scaladsl.{Consumer, Producer}
-import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
+import akka.contrib.persistence.mongodb.MongoReadJournal
+import akka.kafka.ProducerSettings
 import akka.management.scaladsl.AkkaManagement
-import akka.stream.{ActorMaterializer, Materializer}
-import akka.stream.scaladsl.{Sink, Source}
-import com.typesafe.config.ConfigFactory
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import akka.persistence.query.{NoOffset, Offset, PersistenceQuery}
+import akka.persistence.query.scaladsl.CurrentEventsByTagQuery
+import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
+import com.typesafe.config.{Config, ConfigFactory}
+import br.usp.serialization.JsonFormats.KafkaEventFormat
+import br.usp.serialization.OrderCreatedToKafka
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.common.serialization.StringSerializer
+import br.usp.domain.OrderDomain._
+import spray.json.enrichAny
 
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 //#main-class
@@ -43,18 +46,6 @@ object Main {
       val config = configWithPort(port)
       val system = ActorSystem[Nothing](Guardian(httpPort), "OrderApp", config)
       AkkaManagement(system).start()
-      val configKafka = ConfigFactory.load().getConfig("akka.kafka.consumer")
-      implicit val mat: Materializer = Materializer(system)
-      val consumerSettings =
-        ConsumerSettings(configKafka, new StringDeserializer, new StringDeserializer)
-          .withBootstrapServers("localhost:9094")
-          .withGroupId("consumer-group")
-          .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
-
-      Consumer.committableSource(consumerSettings, Subscriptions.topics("user-created"))
-        .map(msg  => println(msg.record.value())
-        )
-        .runWith(Sink.ignore)
     }
   }
 
