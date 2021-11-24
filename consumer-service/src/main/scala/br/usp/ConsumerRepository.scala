@@ -6,7 +6,7 @@ import akka.contrib.persistence.mongodb.MongoReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.scaladsl.CurrentPersistenceIdsQuery
 import akka.util.Timeout
-import br.usp.domain.Consumer
+import br.usp.domain.{Consumer, ConsumerRequest}
 import br.usp.domain.ConsumerDomain.{CreateConsumer, DeleteConsumer, GetConsumer, GetConsumerResponse}
 import org.bson.types.ObjectId
 
@@ -31,8 +31,9 @@ class ConsumerRepository(system: ActorSystem[_]) {
     val entityRef = sharding.entityRefFor(ConsumerPersistence.EntityKey, consumerId)
     entityRef.ask(GetConsumer)
   }
-  def createConsumer(consumer: Consumer): Future[String] = {
+  def createConsumer(request: ConsumerRequest): Future[String] = {
     val id = new ObjectId().toString
+    val consumer = Consumer(id, request.name)
     val entityRef = sharding.entityRefFor(ConsumerPersistence.EntityKey, id)
     entityRef.ask(CreateConsumer(consumer, _))
   }

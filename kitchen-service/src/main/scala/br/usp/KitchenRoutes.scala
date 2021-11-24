@@ -29,28 +29,7 @@ class KitchenRoutes(implicit val system: ActorSystem[_]) {
   // If ask takes more time than this to complete the request is failed
   private implicit val timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
 
-  def getTickets = {
-    val readJournal =
-      PersistenceQuery(system).readJournalFor[CurrentPersistenceIdsQuery](MongoReadJournal.Identifier)
-    readJournal
-      .currentPersistenceIds()
-      .map(id => Await.result(getTicket(id.split("\\|").last), 3.second).maybeTicket.get)
-      .runFold(Seq.empty[Ticket])((set, consumer) => set.+:(consumer))
-  }
-
-  def getTicket(ticketId: String): Future[GetTicketResponse] = {
-    val entityRef = sharding.entityRefFor(KitchenPersistence.EntityKey, ticketId)
-    entityRef.ask(GetTicket(_))
-  }
-  def createTicket(ticket: Ticket): Future[String] = {
-    val id = new ObjectId().toString
-    val entityRef = sharding.entityRefFor(KitchenPersistence.EntityKey, id)
-    entityRef.ask(CreateTicket(ticket, _))
-  }
-  def deleteTicket(consumerId: String): Future[String] = {
-    val entityRef = sharding.entityRefFor(KitchenPersistence.EntityKey, consumerId)
-    entityRef.ask(DeleteTicket(_))
-  }
+  val repository = new KitchenRepository(system)
 
   val kitchenRoutes: Route =
     pathPrefix("tickets") {
@@ -58,13 +37,13 @@ class KitchenRoutes(implicit val system: ActorSystem[_]) {
         pathEnd {
           concat(
             get {
-              onSuccess(getTickets) { tickets =>
+              onSuccess(repository.getTickets) { tickets =>
                 complete(StatusCodes.OK, Tickets(tickets.toSeq))
               }
             },
             post {
               entity(as[Ticket]) { ticket =>
-                onSuccess(createTicket(ticket)) { performed =>
+                onSuccess(repository.createTicket(ticket)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }
               }
@@ -74,13 +53,13 @@ class KitchenRoutes(implicit val system: ActorSystem[_]) {
           concat(
             get {
               rejectEmptyResponse {
-                onSuccess(getTicket(id)) { response =>
+                onSuccess(repository.getTicket(id)) { response =>
                   complete(response.maybeTicket)
                 }
               }
             },
             delete {
-              onSuccess(deleteTicket(id)) { performed =>
+              onSuccess(repository.deleteTicket(id)) { performed =>
                 complete((StatusCodes.OK, performed))
               }
             }

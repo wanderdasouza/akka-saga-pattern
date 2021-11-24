@@ -18,9 +18,9 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-actor-typed"         % akkaVersion,
       "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed"   % akkaVersion,
-      "ch.qos.logback"    % "logback-classic"           % "1.2.6",
+      "ch.qos.logback"    % "logback-classic"           % "1.2.7",
+
       "com.typesafe.akka" %% "akka-stream-kafka" % "2.1.1",
-      "com.fasterxml.jackson.core" % "jackson-databind" % JacksonVersion,
 
       "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
 

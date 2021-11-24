@@ -1,6 +1,10 @@
 lazy val akkaHttpVersion = "10.2.6"
-lazy val akkaVersion    = "2.6.16"
+lazy val akkaVersion    = "2.6.17"
+lazy val leveldbVersion = "0.12"
+lazy val leveldbjniVersion = "1.8"
 val AkkaManagementVersion = "1.1.1"
+val JacksonVersion = "2.11.0"
+
 
 lazy val root = (project in file(".")).
   settings(
@@ -15,7 +19,9 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-actor-typed"         % akkaVersion,
       "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed"   % akkaVersion,
-      "ch.qos.logback"    % "logback-classic"           % "1.2.6",
+      "ch.qos.logback"    % "logback-classic"           % "1.2.7",
+      "com.typesafe.akka" %% "akka-stream-kafka" % "2.1.1",
+      "com.fasterxml.jackson.core" % "jackson-databind" % JacksonVersion,
 
       "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
 

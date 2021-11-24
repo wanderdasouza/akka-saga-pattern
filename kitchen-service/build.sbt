@@ -17,6 +17,8 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-persistence-typed"   % akkaVersion,
       "ch.qos.logback"    % "logback-classic"           % "1.2.6",
 
+      "com.typesafe.akka" %% "akka-stream-kafka" % "2.1.1",
+
       "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
 
       "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,

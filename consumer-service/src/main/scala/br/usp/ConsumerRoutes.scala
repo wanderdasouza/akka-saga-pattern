@@ -1,21 +1,11 @@
 package br.usp
 
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Route
-
-import scala.concurrent.{Await, Future}
 import akka.actor.typed.ActorSystem
-import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.contrib.persistence.mongodb.MongoReadJournal
-import akka.persistence.query.PersistenceQuery
-import akka.persistence.query.scaladsl.CurrentPersistenceIdsQuery
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import br.usp.domain.{Consumer,  Consumers}
-import br.usp.domain.ConsumerDomain._
-import org.bson.types.ObjectId
-
-import scala.concurrent.duration.DurationInt
+import br.usp.domain.{Consumer, ConsumerRequest, Consumers}
 
 
 class ConsumerRoutes(implicit val system: ActorSystem[_]) {
@@ -39,8 +29,8 @@ class ConsumerRoutes(implicit val system: ActorSystem[_]) {
               }
             },
             post {
-              entity(as[Consumer]) { consumer =>
-                onSuccess(repository.createConsumer(consumer)) { performed =>
+              entity(as[ConsumerRequest]) { consumerRequest =>
+                onSuccess(repository.createConsumer(consumerRequest)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }
               }

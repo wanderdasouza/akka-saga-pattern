@@ -17,7 +17,7 @@ object ConsumerPersistence {
  }
 
   object State {
-    def empty(consumerId: String) = State(consumerId, null)
+    def empty(consumerId: String) = State(consumerId, "")
   }
 
   val EntityKey: EntityTypeKey[Command] =
@@ -28,7 +28,7 @@ object ConsumerPersistence {
     command match {
       case GetConsumer(replyTo) =>
         Effect
-          .reply(replyTo)(GetConsumerResponse(Option(Consumer(state.name))))
+          .reply(replyTo)(GetConsumerResponse(Option(Consumer(state.id, state.name))))
       case CreateConsumer(consumer, replyTo) =>
         Effect
           .persist(ConsumerCreated(consumer))

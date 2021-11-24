@@ -4,7 +4,9 @@ import akka.actor.AddressFromURIString
 import com.typesafe.config.Config
 import akka.actor.typed.ActorSystem
 import akka.management.scaladsl.AkkaManagement
+import akka.stream.Materializer
 import com.typesafe.config.ConfigFactory
+import akka.stream.Materializer
 
 import scala.collection.JavaConverters._
 
@@ -32,8 +34,10 @@ object Main {
         else 0 // let OS decide
 
       val config = configWithPort(port)
-      val system = ActorSystem[Nothing](Guardian(httpPort), "KitchenApp", config)
+      implicit val system = ActorSystem[Nothing](Guardian(httpPort), "KitchenApp", config)
       AkkaManagement(system).start()
+      implicit val mat = Materializer(system)
+      KitchenConsumer.subscribe("order-created")
     }
   }
 

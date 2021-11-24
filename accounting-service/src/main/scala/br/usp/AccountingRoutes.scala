@@ -10,40 +10,38 @@ import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.contrib.persistence.mongodb.MongoReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.scaladsl.CurrentPersistenceIdsQuery
-import akka.stream.scaladsl.Source
 import akka.util.Timeout
-import br.usp.domain.{Order, OrderRequest, OrderState, Orders}
-import br.usp.domain.OrderDomain._
+import br.usp.domain.{Account,  Accounts}
+import br.usp.domain.AccountDomain._
 import org.bson.types.ObjectId
 
 import scala.concurrent.duration.DurationInt
 
 
-class OrderRoutes(implicit val system: ActorSystem[_]) {
+class AccountingRoutes(implicit val system: ActorSystem[_]) {
 
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import br.usp.serialization.JsonFormats._
   //#import-json-formats
-
   // If ask takes more time than this to complete the request is failed
-  private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
+  private implicit val timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
 
-  private val repository = new OrderRepository(system)
+  private val repository = new AccountRepository(system)
 
-  val orderRoutes: Route =
-    pathPrefix("orders") {
+
+  val accountRoutes: Route =
+    pathPrefix("accounts") {
       concat(
         pathEnd {
           concat(
             get {
-              onSuccess(repository.getOrders) { orders =>
-                complete(StatusCodes.OK, Orders(orders.toSeq))
+              onSuccess(repository.getAccounts) { accounts =>
+                complete(StatusCodes.OK, Accounts(accounts.toSeq))
               }
             },
             post {
-              entity(as[OrderRequest]) { o =>
-                val order = Order(o.consumerId, OrderState.PENDING)
-                onSuccess(repository.createOrder(order)) { performed =>
+              entity(as[Account]) { account =>
+                onSuccess(repository.createAccount(account)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }
               }
@@ -53,13 +51,13 @@ class OrderRoutes(implicit val system: ActorSystem[_]) {
           concat(
             get {
               rejectEmptyResponse {
-                onSuccess(repository.getOrder(id)) { response =>
-                  complete(response.maybeOrder)
+                onSuccess(repository.getAccount(id)) { response =>
+                  complete(response.maybeAccount)
                 }
               }
             },
             delete {
-              onSuccess(repository.deleteOrder(id)) { performed =>
+              onSuccess(repository.deleteAccount(id)) { performed =>
                 complete((StatusCodes.OK, performed))
               }
             }

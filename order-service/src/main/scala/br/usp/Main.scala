@@ -2,20 +2,11 @@ package br.usp
 
 import akka.actor.AddressFromURIString
 import akka.actor.typed.ActorSystem
-import akka.contrib.persistence.mongodb.MongoReadJournal
-import akka.kafka.ProducerSettings
+import akka.contrib.persistence.mongodb.{MongoReadJournal, ScalaDslMongoReadJournal}
 import akka.management.scaladsl.AkkaManagement
-import akka.persistence.query.{NoOffset, Offset, PersistenceQuery}
-import akka.persistence.query.scaladsl.CurrentEventsByTagQuery
+import akka.persistence.query.PersistenceQuery
 import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
 import com.typesafe.config.{Config, ConfigFactory}
-import br.usp.serialization.JsonFormats.KafkaEventFormat
-import br.usp.serialization.OrderCreatedToKafka
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.StringSerializer
-import br.usp.domain.OrderDomain._
-import spray.json.enrichAny
 
 import scala.collection.JavaConverters._
 
@@ -44,8 +35,10 @@ object Main {
         else 0 // let OS decide
 
       val config = configWithPort(port)
-      val system = ActorSystem[Nothing](Guardian(httpPort), "OrderApp", config)
+      implicit val system = ActorSystem[Nothing](Guardian(httpPort), "OrderApp", config)
+      implicit val mat = Materializer(system)
       AkkaManagement(system).start()
+      OrderConsumer.subscribe("credit-card-authorized")
     }
   }
 
